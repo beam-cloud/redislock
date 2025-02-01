@@ -1,4 +1,4 @@
-module github.com/bsm/redislock
+module github.com/beam-cloud/redislock
 
 go 1.17
 

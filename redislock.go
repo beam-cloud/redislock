@@ -45,6 +45,7 @@ var (
 // RedisClient is a minimal client interface.
 type RedisClient interface {
 	redis.Scripter
+	Get(ctx context.Context, key string) *redis.StringCmd
 }
 
 // Client wraps a redis client.
@@ -117,6 +118,23 @@ func (c *Client) ObtainMulti(ctx context.Context, keys []string, ttl time.Durati
 		case <-ticker.C:
 		}
 	}
+}
+
+// RetrieveLock retrieves the lock information (from Redis) and reconstructs a Lock instance.
+// The caller must supply the key and the expected token (or part of it) for verification.
+func (c *Client) RetrieveLock(ctx context.Context, key, token string) (*Lock, error) {
+	storedVal, err := c.client.Get(ctx, key).Result() // Get the stored lock value from Redis.
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify that the stored value begins with the provided token.
+	if len(storedVal) < len(token) || storedVal[:len(token)] != token {
+		return nil, errors.New("lock token does not match")
+	}
+
+	// Create and return the Lock instance.
+	return &Lock{Client: c, keys: []string{key}, value: storedVal, tokenLen: len(token)}, nil
 }
 
 func (c *Client) obtain(ctx context.Context, keys []string, value string, tokenLen int, ttlVal string) (bool, error) {

@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/bsm/redislock"
+	"github.com/beam-cloud/redislock"
 	"github.com/redis/go-redis/v9"
 )
 

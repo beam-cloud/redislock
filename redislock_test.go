@@ -12,14 +12,15 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/bsm/redislock"
+	. "github.com/beam-cloud/redislock"
 	"github.com/redis/go-redis/v9"
 )
 
 var redisOpts = &redis.Options{
-	Network: "tcp",
-	Addr:    "127.0.0.1:6379",
-	DB:      9,
+	Network:  "tcp",
+	Addr:     "127.0.0.1:6379",
+	DB:       9,
+	Password: "password",
 }
 
 func TestClient(t *testing.T) {
@@ -72,6 +73,26 @@ func TestObtain(t *testing.T) {
 
 	lock := quickObtain(t, rc, lockKey, time.Hour)
 	if err := lock.Release(ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestObtainAndRetrieve(t *testing.T) {
+	lockKey := getLockKey()
+	ctx := context.Background()
+	rc := redis.NewClient(redisOpts)
+	defer teardown(t, rc, lockKey)
+
+	client := New(rc)
+
+	lock := quickObtain(t, rc, lockKey, time.Hour)
+
+	retrievedLock, err := client.RetrieveLock(ctx, lockKey, lock.Token())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := retrievedLock.Release(ctx); err != nil {
 		t.Fatal(err)
 	}
 }
